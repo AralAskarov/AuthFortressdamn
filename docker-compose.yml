@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: django_app
+    command: gunicorn tokendamn.wsgi:application --bind 0.0.0.0:8000
+    volumes:
+      - .:/app
+    environment:
+      POSTGRES_DB: tokens
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass123
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"  # Проброс порта для доступа к Django на локальной машине
+    networks:
+      - app-network
+
+  db:
+    image: postgres:14
+    container_name: postgres_db
+    environment:
+      POSTGRES_DB: tokens
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql  # Монтирование SQL-скрипта для создания таблиц и пользователя
+    networks:
+      - app-network
+  
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: askarov.10.09@gmail.com  # Замените на ваш email
+      PGADMIN_DEFAULT_PASSWORD: pass123           # Замените на ваш пароль
+    ports:
+      - "5050:80"  # Проброс порта pgAdmin на локальную машину
+    networks:
+      - app-network
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
+
+networks:
+  app-network:
